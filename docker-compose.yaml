@@ -1,0 +1,82 @@
+services:
+  account-api:
+    platform: linux/arm64
+    image: sasha333/account-api:v1.0
+    container_name: joykeen-account-api
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env      
+    environment:
+      - DATABASE_URL=postgresql://sasha_user:sasha_password@db:5432/joykeen_db
+    depends_on:
+      - db
+      - users-api
+      - chat-api
+    networks:
+      - joykeen_network
+  
+  users-api:
+    image: hiimpala1967/users-api:0.0.1
+    container_name: joykeen-users-api
+    ports:
+      - "8001:8000"
+    pull_policy: if_not_present
+    networks:
+      - joykeen_network
+    depends_on:
+      - db
+
+  chat-api:
+    platform: linux/arm64
+    image: kiraashkarban/chat-api:1.0
+    container_name: joykeen-chat-api
+    ports:
+      - "8002:8000"
+    pull_policy: if_not_present
+    networks:
+      - joykeen_network
+    depends_on:
+      - db
+
+  game-api:
+    image: f1tt/game-api:1.0.0
+    container_name: joykeen-game-api
+    ports:
+      - "8003:8000"
+    pull_policy: if_not_present
+    environment:
+      - DATABASE_URL=postgresql://sasha_user:sasha_password@db:5432/joykeen_db
+    networks:
+      - joykeen_network
+    depends_on:
+      - db
+
+  # Сервис БД
+  db:
+    image: postgres:15-alpine
+    container_name: joykeen-db
+    restart: always
+    environment:
+      - POSTGRES_USER=sasha_user
+      - POSTGRES_PASSWORD=sasha_password
+      - POSTGRES_DB=joykeen_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - joykeen_network
+    # HEALTHCHECK ДЛЯ БАЗИ ДАНИХ
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sasha_user -d joykeen_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  joykeen_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
